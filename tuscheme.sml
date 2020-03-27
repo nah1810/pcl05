@@ -1527,7 +1527,11 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
             let val (xs, es) = ListPair.unzip bs
             in (typeof (body, Delta, (bindList(xs, (map ty es), Gamma))))
             end             
-        | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
+        | ty (LETX (LETSTAR, (x1,e1)::bs, body)) =
+            let val tau_e = typeof (e1, Delta, Gamma)
+            in(typeof(LETX (LETSTAR, bs, body), Delta, (bind (x1, tau_e, Gamma) ) ))
+            end
+        | ty (LETX (LETSTAR, nil, body)) = typeof(body, Delta, Gamma)
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
         | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
         | ty (APPLY (f, actuals)) = raise LeftAsExercise "APPLY"
