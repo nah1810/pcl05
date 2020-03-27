@@ -1289,7 +1289,14 @@ fun typeof (e, globals, functions, formals) =
              end
 
 (* function [[ty]], to check the type of an expression, given $\itenvs$ ((prototype)) 413 *)
-      | ty (AMAKE (len, init)) = raise LeftAsExercise "AMAKE"
+      | ty (AMAKE (len, init)) = 
+        let val tau1 = ty len
+            val tau2 = ty init
+        in if eqType (tau1, INTTY) then
+                (ARRAYTY tau2)
+           else
+                raise TypeError("Wrong len type in AMAKE, should be Int")           
+       end
       | ty (ASIZE a)           = raise LeftAsExercise "ASIZE"
       | ty (AAT (a, i))        = raise LeftAsExercise "AAT"
       | ty (APUT (a, i, e))    = raise LeftAsExercise "APUT"
