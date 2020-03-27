@@ -1483,18 +1483,42 @@ val _ = op eqTypes : tyex list * tyex list -> bool
 
 (* type checking for {\tuscheme} ((prototype)) 436 *)
 fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
-  let fun ty (LITERAL (NUM n)) = raise LeftAsExercise "LITERAL/NUM"
-        | ty (LITERAL (BOOLV b)) = raise LeftAsExercise "LITERAL/BOOL"
-        | ty (LITERAL (SYM s)) = raise LeftAsExercise "LITERAL/SYM"
+  let fun ty (LITERAL (NUM n)) = inttype 
+        | ty (LITERAL (BOOLV b)) = booltype
+        | ty (LITERAL (SYM s)) = symtype
         | ty (LITERAL NIL) = raise LeftAsExercise "LITERAL/NIL"
         | ty (LITERAL (PAIR (h, t))) = raise LeftAsExercise "LITERAL/PAIR"
         | ty (LITERAL (CLOSURE _)) = raise TypeError "impossible -- CLOSURE literal"
         | ty (LITERAL (PRIMITIVE _)) = raise TypeError "impossible -- PRIMITIVE literal"
-        | ty (VAR x) = raise LeftAsExercise "VAR"
-        | ty (SET (x, e)) = raise LeftAsExercise "SET"
-        | ty (IFX (e1, e2, e3)) = raise LeftAsExercise "IFX"
-        | ty (WHILEX (e1, e2)) = raise LeftAsExercise "WHILE"
-        | ty (BEGIN es) = raise LeftAsExercise "BEGIN"
+        | ty (VAR x) = (find (x, Gamma) handle NotFound _ => raise
+        TypeError("VAR x Unknown Variable"))
+        | ty (SET (x, e)) = 
+                let val tau1 = ty (VAR x)
+                in  if (eqType (tau1, ty e)) then
+                        ty e
+                    else
+                      raise TypeError("SET: type of x does not match type of e")
+                end
+        | ty (IFX (e1, e2, e3)) = 
+                let val tau1 = typeof (e1, Delta, Gamma)
+                    val tau2 = typeof (e2, Delta, Gamma)
+                    val tau3 = typeof (e3, Delta, Gamma)
+                in  if (eqType (tau1, booltype)) then
+                        if (eqType (tau2, tau3)) then
+                            tau2
+                        else
+                            raise TypeError("IFX: e2 and e3 are not the same type")
+                    else
+                        raise TypeError("IFX: e1 is not a bool")
+                 end
+        | ty (WHILEX (e1, e2)) = 
+            let val tau1 = typeof(e1, Delta, Gamma)
+            in  if (eqType (tau1, booltype)) then
+                    unittype
+                else
+                    raise TypeError("WHILEX: type of e1 is not bool")
+            end
+        | ty (BEGIN es) = raise LeftAsExercise "BEGIN" 
         | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
         | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
@@ -1509,7 +1533,11 @@ val _ = op typeof  : exp * kind env * tyex env -> tyex
 (* type checking for {\tuscheme} ((prototype)) 436 *)
 fun elabdef (d : def, Delta : kind env, Gamma : tyex env) : tyex env * string =
   case d
-    of VAL (name, e) => raise LeftAsExercise "VAL"
+    of VAL (name, e) => 
+        let val tau1 = typeof (e, Delta, Gamma)
+        in
+            (bind  (name, tau1, Gamma), typeString tau1)
+        end
      | EXP e => elabdef (VAL ("it", e), Delta, Gamma)
      | DEFINE (name, tau, lambda as (formals, body)) => raise LeftAsExercise "DEFINE"
      | VALREC (name, tau, e) => raise LeftAsExercise "VALREC"
