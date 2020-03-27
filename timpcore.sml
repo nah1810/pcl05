@@ -1295,9 +1295,14 @@ fun typeof (e, globals, functions, formals) =
         in if eqType (tau1, INTTY) then
                 (ARRAYTY tau2)
            else
-                raise TypeError("Wrong len type in AMAKE, should be Int")           
+                raise TypeError("AMAKE: expected Int")           
        end
-      | ty (ASIZE a)           = raise LeftAsExercise "ASIZE"
+      | ty (ASIZE a)           = 
+        let val tau1 = ty a
+        in case tau1 of
+                ARRAYTY t => INTTY
+              |_ => raise TypeError("ASIZE: expected Array")
+        end
       | ty (AAT (a, i))        = raise LeftAsExercise "AAT"
       | ty (APUT (a, i, e))    = raise LeftAsExercise "APUT"
 
