@@ -1486,7 +1486,7 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
   let fun ty (LITERAL (NUM n)) = inttype 
         | ty (LITERAL (BOOLV b)) = booltype
         | ty (LITERAL (SYM s)) = symtype
-        | ty (LITERAL NIL) = raise LeftAsExercise "LITERAL/NIL"
+        | ty (LITERAL NIL) = FORALL([typeString tyvarA],listtype tyvarA)
         | ty (LITERAL (PAIR (h, t))) = raise LeftAsExercise "LITERAL/PAIR"
         | ty (LITERAL (CLOSURE _)) = raise TypeError "impossible -- CLOSURE literal"
         | ty (LITERAL (PRIMITIVE _)) = raise TypeError "impossible -- PRIMITIVE literal"
@@ -1523,7 +1523,10 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
             let val bodytypes = map ty es
             in List.last bodytypes handle Empty => unittype
             end    
-        | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
+        | ty (LETX (LET, bs, body)) =
+            let val (xs, es) = ListPair.unzip bs
+            in (typeof (body, Delta, (bindList(xs, (map ty es), Gamma))))
+            end             
         | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
         | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
