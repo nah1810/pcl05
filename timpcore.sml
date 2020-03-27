@@ -1313,7 +1313,20 @@ fun typeof (e, globals, functions, formals) =
             else
                 raise TypeError ("AAT: expected i to be INTTY")
         end
-      | ty (APUT (a, i, e))    = raise LeftAsExercise "APUT"
+      | ty (APUT (a, i, e)) =
+        let val tau1 = ty a
+            val tau2 = ty i
+            val tau3 = ty e
+        in if eqType(tau2, INTTY) then
+                case tau1 of
+                   ARRAYTY tau => if eqType(tau, tau3) then
+                            (tau3)
+                        else
+                            raise TypeError("APUT: expected a's contents and e to be same type")
+                   |_ => raise TypeError("APUT: expected a to be ARRAYTY")
+            else
+                raise TypeError("APUT: expected i to be INTTY")
+        end
 
 (* type declarations for consistency checking *)
 val _ = op typeof  : exp * ty env * funty env * ty env -> ty
