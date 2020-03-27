@@ -1495,7 +1495,7 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
         | ty (SET (x, e)) = 
                 let val tau1 = ty (VAR x)
                 in  if (eqType (tau1, ty e)) then
-                        ty e
+                        tau1
                     else
                       raise TypeError("SET: type of x does not match type of e")
                 end
@@ -1511,14 +1511,18 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
                     else
                         raise TypeError("IFX: e1 is not a bool")
                  end
-        | ty (WHILEX (e1, e2)) = 
-            let val tau1 = typeof(e1, Delta, Gamma)
+        | ty (WHILEX (e1, e2)) =  
+            let val tau1 = ty e1
+                val tau2 = ty e2
             in  if (eqType (tau1, booltype)) then
                     unittype
                 else
                     raise TypeError("WHILEX: type of e1 is not bool")
             end
-        | ty (BEGIN es) = raise LeftAsExercise "BEGIN" 
+        | ty (BEGIN es) = 
+            let val bodytypes = map ty es
+            in List.last bodytypes handle Empty => unittype
+            end    
         | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
         | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
