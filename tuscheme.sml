@@ -1540,7 +1540,34 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
             in(typeof(LETX (LETSTAR, bs, body), Delta, (bind (x1, tau_e, Gamma) ) ))
             end
         | ty (LETX (LETSTAR, nil, body)) = typeof(body, Delta, Gamma)
-        | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
+        | ty (LETRECX (bs, body)) = 
+	    let fun recTyp((var, typ)::tail, tenv)=
+                recTyp(tail, bind(var, typ, tenv))
+                | recTyp(nil, tenv) = tenv
+            fun recTypList((var, typ)::lst)=
+                typ::recTypList(lst)
+              | recTypList(nil) = nil
+            fun asTypeRec((var, typ)::tail, kindenv) =
+              (asType(typ, Delta); asTypeRec(tail, Delta))
+              | asTypeRec (nil, kindenv) = Delta  
+            fun checkETy(t::tys, e::es, genv) = 
+                let val tau_i = typeof(e, Delta, genv) 
+                in case e of
+                        LAMBDA(targs, tres) =>   if (eqType(t, tau_i)) then
+                                    checkETy(tys, es, genv)
+                                else
+                                    raise TypeError("LETREC: type mismatch between x_i and e_i")
+                        |_ => raise TypeError("LETREC: es must be LAMBDA")
+                end
+              | checkETy(nil, nil, genv) = nil
+              | checkETy(_) = raise TypeError("confused")
+            val (formals, es) = ListPair.unzip bs
+            val checkETy = checkETy (map snd formals, es, recTyp(formals, Gamma))
+            val expty = typeof(body, Delta, recTyp(formals, Gamma))
+            val kinding = asTypeRec(formals, Delta)
+        in
+          expty	    
+        end  
         | ty (LAMBDA (formals, body)) = 
 	    let fun recTyp((var, typ)::tail, tenv)=
                 recTyp(tail, bind(var, typ, tenv))
@@ -1555,7 +1582,7 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
             val args = recTypList(formals)
             val kinding = asTypeRec(formals, Delta)
         in
-          (FUNTY (args, expty))	    
+          FUNTY(args, expty)    
         end  
 
         | ty (APPLY (f, actuals)) = 
