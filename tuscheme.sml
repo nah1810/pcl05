@@ -1533,9 +1533,21 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
         | ty (LETX (LETSTAR, nil, body)) = typeof(body, Delta, Gamma)
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
         | ty (LAMBDA (formals, body)) = 
-	    let val (xs, es) = ListPair.unzip formals
-	    in (typeof (body, Delta, bindList(xs, es, Gamma)))
-	    end  
+	    let fun recTyp((var, typ)::tail, tenv)=
+                recTyp(tail, bind(var, typ, tenv))
+                | recTyp(nil, tenv) = tenv
+            fun recTypList((var, typ)::lst)=
+                typ::recTypList(lst)
+              | recTypList(nil) = nil
+            fun asTypeRec((var, typ)::tail, kindenv) =
+              (asType(typ, Delta); asTypeRec(tail, Delta))
+              | asTypeRec (nil, kindenv) = Delta
+            val expty = typeof(body, Delta, recTyp(formals, Gamma))
+            val args = recTypList(formals)
+            val kinding = asTypeRec(formals, Delta)
+        in
+          (FUNTY (args, expty))	    
+        end  
 
         | ty (APPLY (f, actuals)) = 
             let val actualtypes = map ty actuals
