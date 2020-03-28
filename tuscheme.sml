@@ -1593,7 +1593,17 @@ fun elabdef (d : def, Delta : kind env, Gamma : tyex env) : tyex env * string =
         end
      | EXP e => elabdef (VAL ("it", e), Delta, Gamma)
      | DEFINE (name, tau, lambda as (formals, body)) => raise LeftAsExercise "DEFINE"
-     | VALREC (name, tau, e) => raise LeftAsExercise "VALREC"
+     | VALREC (name, tau, e) => 
+        let val nexte = bind(name, tau, Gamma)
+            val tau_e = typeof(e, Delta, nexte)
+            val t_as_d = asType(tau, Delta)
+        in case e of
+            LAMBDA(formals, body) =>    if(eqType(tau_e, t_as_d))then
+                                            (nexte, typeString tau_e)
+                                        else
+                           raise TypeError("VALREC: expected tau_e and tau to be same kind")
+              |_ => raise TypeError("VALRED: expected a lambda type expression")
+        end
 val _ = op elabdef : def * kind env * tyex env -> tyex env * string
 
 
