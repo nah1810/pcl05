@@ -1486,7 +1486,16 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
         | ty (LITERAL (BOOLV b)) = booltype
         | ty (LITERAL (SYM s)) = symtype
         | ty (LITERAL NIL) = FORALL([typeString tyvarA],listtype tyvarA)
-        | ty (LITERAL (PAIR (h, t))) = raise LeftAsExercise "LITERAL/PAIR"
+        | ty (LITERAL (PAIR (h, NIL))) = CONAPP(TYCON "list", [typeof (LITERAL
+        h, Delta, Gamma)])
+        | ty (LITERAL (PAIR (h, t))) =
+            let val tau1 = typeof (LITERAL h, Delta, Gamma)
+                val tau2 = typeof (LITERAL t, Delta, Gamma)
+            in if(eqType(CONAPP(TYCON "list", [tau1]), tau2)) then
+                tau2
+            else
+              raise TypeError("LIT PAIR: different types")
+            end
         | ty (LITERAL (CLOSURE _)) = raise TypeError "impossible -- CLOSURE literal"
         | ty (LITERAL (PRIMITIVE _)) = raise TypeError "impossible -- PRIMITIVE literal"
         | ty (VAR x) = (find (x, Gamma) handle NotFound _ => raise
@@ -1592,7 +1601,10 @@ fun elabdef (d : def, Delta : kind env, Gamma : tyex env) : tyex env * string =
             (bind  (name, tau1, Gamma), typeString tau1)
         end
      | EXP e => elabdef (VAL ("it", e), Delta, Gamma)
-     | DEFINE (name, tau, lambda as (formals, body)) => raise LeftAsExercise "DEFINE"
+     | DEFINE (name, tau, lambda as (formals, body)) =>
+         let val (fname, ftau) = (map fst formals, map snd formals)
+         in (elabdef (VALREC(name, FUNTY(ftau,tau), LAMBDA (formals, body)), Delta, Gamma))
+         end
      | VALREC (name, tau, e) => 
         let val nexte = bind(name, tau, Gamma)
             val tau_e = typeof(e, Delta, nexte)
