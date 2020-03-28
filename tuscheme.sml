@@ -257,7 +257,6 @@ val _ = op mapC2   : ('a * 'b -> 'c) -> ('a collection * 'b collection -> 'c
 datatype 'a action
   = PENDING  of unit -> 'a
   | PRODUCED of 'a
-
 type 'a susp = 'a action ref
 (* type declarations for consistency checking *)
 type 'a susp = 'a susp
@@ -1533,7 +1532,11 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
             end
         | ty (LETX (LETSTAR, nil, body)) = typeof(body, Delta, Gamma)
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
-        | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
+        | ty (LAMBDA (formals, body)) = 
+	    let val (xs, es) = ListPair.unzip formals
+	    in (typeof (body, Delta, bindList(xs, es, Gamma)))
+	    end  
+
         | ty (APPLY (f, actuals)) = 
             let val actualtypes = map ty actuals
                 val ftau = typeof(f, Delta, Gamma)
@@ -1562,7 +1565,6 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
                     parameterError (1, actualtypes, formaltypes)
             end
  
-        
         | ty (TYLAMBDA (alphas, e)) = raise LeftAsExercise "TYLAMBDA"
         | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
   in  ty e
