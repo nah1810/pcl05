@@ -1534,7 +1534,35 @@ fun typeof (e : exp, Delta : kind env, Gamma : tyex env) : tyex =
         | ty (LETX (LETSTAR, nil, body)) = typeof(body, Delta, Gamma)
         | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
         | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
-        | ty (APPLY (f, actuals)) = raise LeftAsExercise "APPLY"
+        | ty (APPLY (f, actuals)) = 
+            let val actualtypes = map ty actuals
+                val ftau = typeof(f, Delta, Gamma)
+                val (formaltypes, resulttype) = case ftau of
+                        FUNTY (args, res) => (args, res)
+                      |_=> raise TypeError("APPLY: expecting FUNTY")
+                fun parameterError (n, atau::actuals, ftau::formals) =
+                    if eqType (atau, ftau) then
+                        parameterError (n+1, actuals, formals)
+                    else
+                        raise TypeError ("In call to f, parameter " ^
+                                           intString n ^ " has type " ^
+                                                                typeString atau ^
+                                          " where type " ^ typeString ftau ^
+                                                               " is expected")
+                | parameterError _ =
+                        raise TypeError ("Function f expects " ^
+                                         intString (length formaltypes) ^
+                                                                 " parameters " ^
+                                         "but got " ^ intString (length
+                                                                    actualtypes))
+            in  
+              if eqTypes (actualtypes, formaltypes) then
+                   resulttype
+              else
+                    parameterError (1, actualtypes, formaltypes)
+            end
+ 
+        
         | ty (TYLAMBDA (alphas, e)) = raise LeftAsExercise "TYLAMBDA"
         | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
   in  ty e
